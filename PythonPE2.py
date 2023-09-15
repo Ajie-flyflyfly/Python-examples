@@ -26,6 +26,16 @@ def create_database_and_table():
     connection.commit()
     connection.close()
 
+# Function to check if data already exists in the table
+def data_exists(connection, movie_name, movie_year, imdb_rating):
+    cursor = connection.cursor()
+    cursor.execute("""
+        SELECT COUNT(*) FROM stephen_king_adaptations_table
+        WHERE movieName = %s AND movieYear = %s AND imdbRating = %s
+    """, (movie_name, movie_year, imdb_rating))
+    count = cursor.fetchone()[0]
+    return count > 0
+
 # Function to insert data into the table from a list
 def insert_data_from_list(data_list):
     connection = mysql.connector.connect(
@@ -37,10 +47,19 @@ def insert_data_from_list(data_list):
     cursor = connection.cursor()
 
     for item in data_list:
-        cursor.execute("""
+        sql = """
             INSERT INTO stephen_king_adaptations_table (movieName, movieYear, imdbRating)
             VALUES (%s, %s, %s)
-        """, item)
+        """
+        del item[0]
+        movie_name, movie_year, imdb_rating = item
+        #cursor.execute(sql, item)
+
+        if not data_exists(connection, movie_name, movie_year, imdb_rating):
+            cursor.execute("""
+                INSERT INTO stephen_king_adaptations_table (movieName, movieYear, imdbRating)
+                VALUES (%s, %s, %s)
+            """, (movie_name, movie_year, imdb_rating))
 
     connection.commit()
     connection.close()
@@ -82,7 +101,7 @@ def search_by_name(movie_name):
 
     cursor.execute("""
         SELECT * FROM stephen_king_adaptations_table WHERE movieName LIKE %s
-    """, ('%' + movie_name + '%',))
+    """, (movie_name,))
 
     movies = cursor.fetchall()
     
